@@ -7,23 +7,26 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body{font-family:'Segoe UI',sans-serif;margin:0;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;}
-    .card{max-width:1100px;width:95%;background:rgba(255,255,255,0.98);border-radius:25px;padding:35px;box-shadow:0 25px 60px rgba(0,0,0,0.4);color:#222;}
-    h1{text-align:center;color:#0f2027;font-size:2.8em;margin:0 0 8px;font-weight:900;}
-    .autor{text-align:center;color:#203a43;font-size:1.4em;font-weight:bold;margin-bottom:35px;}
+    .card{max-width:1100px;width:95%;background:rgba(255,255,255,0.98);border-radius:25px;padding:40px;box-shadow:0 25px 60px rgba(0,0,0,0.4);color:#222;}
+    h1{text-align:center;color:#0f2027;font-size:3em;margin:0 0 8px;font-weight:900;}
+    .autor{text-align:center;color:#203a43;font-size:1.5em;font-weight:bold;margin-bottom:20px;}
+    .ytd{font-size:3.5em;font-weight:900;text-align:center;margin:30px 0;}
+    .positivo{color:#00e676;text-shadow:0 0 20px #00e676;}
+    .negativo{color:#ff1744;text-shadow:0 0 20px #ff1744;}
     table{width:100%;max-width:750px;margin:35px auto;border-collapse:collapse;background:white;border-radius:18px;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,0.2);}
     th{background:#0f2027;color:white;padding:22px;font-size:1.4em;}
     td{padding:20px;font-size:1.3em;text-align:center;font-weight:600;}
     tr:nth-child(even){background:#f8f9fa;}
-    tr:hover{background:#e0f7fa;transform:scale(1.02);transition:0.3s;}
-    .positivo{color:#00e676;font-weight:900;font-size:1.5em;text-shadow:0 0 15px rgba(0,230,118,0.6);}
-    .negativo{color:#ff1744;font-weight:900;font-size:1.5em;text-shadow:0 0 15px rgba(255,23,68,0.6);}
+    tr:hover{background:#e0f7fa;}
+    .pendiente{color:#888;font-style:italic;}
     canvas{max-width:100%;border-radius:22px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.3);margin:30px 0;}
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Rendimientos Mensuales 2025</h1>
+    <h1>Rendimientos Acumulados 2025</h1>
     <div class="autor">@EnderA44</div>
+    <div id="ytdActual" class="ytd">Cargando...</div>
     <table id="tabla"></table>
     <canvas id="grafico"></canvas>
   </div>
@@ -35,43 +38,57 @@
         const lineas = text.trim().split('\n');
         const meses = [];
         const valores = [];
-        let html = '<tr><th>Mes</th><th>Rendimiento</th></tr>';
+        let ultimoValor = 0;
+        let html = '<tr><th>Mes</th><th>YTD (acumulado)</th></tr>';
 
         for (let i = 1; i < lineas.length; i++) {
           let partes = lineas[i].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
           let mes = partes[0];
           let valStr = partes[1];
-          let valor = parseFloat(valStr.replace('%', '').replace(',', '.')) || 0;
+          let valor = valStr === '' || valStr === '0' || valStr === '0%' ? null : parseFloat(valStr.replace('%', '').replace(',', '.'));
 
           meses.push(mes);
-          valores.push(valor);
-          const clase = valor >= 0 ? 'positivo' : 'negativo';
-          html += `<tr><td>${mes}</td><td class="${clase}">${valStr}</td></tr>`;
+
+          if (valor !== null) {
+            ultimoValor = valor;
+            valores.push(valor);
+            html += `<tr><td>${mes}</td><td class="positivo">${valor.toFixed(2)}%</td></tr>`;
+          } else {
+            valores.push(null);
+            html += `<tr><td>${mes}</td><td class="pendiente">—</td></tr>`;
+          }
         }
         document.getElementById('tabla').innerHTML = html;
 
+        // YTD actual gigante
+        document.getElementById('ytdActual').innerHTML = `
+          <div style="color:#0f2027;">Rendimiento YTD actual</div>
+          <div class="${ultimoValor>=0?'positivo':'negativo'}">${ultimoValor.toFixed(2)}%</div>
+        `;
+
+        // Gráfico
         new Chart(document.getElementById('grafico'), {
           type: 'line',
           data: {
             labels: meses,
             datasets: [{
-              label: 'Rendimiento mensual (%)',
+              label: 'Rendimiento acumulado YTD (%)',
               data: valores,
               borderColor: '#00e676',
               backgroundColor: 'rgba(0, 230, 118, 0.2)',
               fill: true,
-              tension: 0.5,
+              tension: 0.4,
               borderWidth: 6,
-              pointBackgroundColor: valores.map(v => v >= 0 ? '#00e676' : '#ff1744'),
-              pointRadius: 11,
-              pointHoverRadius: 16
+              pointBackgroundColor: '#00e676',
+              pointRadius: 10,
+              pointHoverRadius: 15
             }]
           },
           options: {
             responsive: true,
             plugins: {
-              title: {display: true, text: 'EVOLUCIÓN 2025 - @EnderA44', font: {size: 28, weight: 'bold'}, color: '#0f2027'},
-              tooltip: {callbacks: {label: ctx => ctx.parsed.y.toFixed(2) + '%'}}
+              title: {display: true, text: 'EVOLUCIÓN ACUMULADA 2025 - @EnderA44', font: {size: 28, weight: 'bold'}, color: '#0f2027'},
+              tooltip: {callbacks: {label: ctx => ctx.parsed.y !== null ? ctx.parsed.y.toFixed(2) + '%' : 'Sin datos'}}
             },
             scales: {y: {ticks: {callback: v => v + '%'}}}
           }
