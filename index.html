@@ -10,12 +10,12 @@
     .card{max-width:1100px;width:95%;background:rgba(255,255,255,0.98);border-radius:25px;padding:40px;box-shadow:0 25px 60px rgba(0,0,0,0.4);color:#222;}
     h1{text-align:center;color:#0f2027;font-size:3em;margin:0 0 8px;font-weight:900;}
     .autor{text-align:center;color:#203a43;font-size:1.5em;font-weight:bold;margin-bottom:20px;}
-    .ytd{font-size:5em;font-weight:900;text-align:center;margin:30px 0;}
-    .positivo{color:#00e676;text-shadow:0 0 30px #00e676;}
-    .negativo{color:#ff1744;text-shadow:0 0 30px #ff1744;}
-    table{width:100%;max-width:850px;margin:35px auto;border-collapse:collapse;background:white;border-radius:18px;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,0.2);}
+    .ytd{font-size:5.5em;font-weight:900;text-align:center;margin:30px 0;}
+    .positivo{color:#00e676;text-shadow:0 0 35px #00e676;}
+    .negativo{color:#ff1744;text-shadow:0 0 35px #ff1744;}
+    table{width:100%;max-width:900px;margin:35px auto;border-collapse:collapse;background:white;border-radius:18px;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,0.2);}
     th{background:#0f2027;color:white;padding:22px;font-size:1.4em;}
-    td{padding:20px;font-size:1.3em;text-align:center;font-weight:600;}
+    td{padding:20px;font-size:1.4em;text-align:center;font-weight:600;}
     tr:nth-child(even){background:#f8f9fa;}
     tr:hover{background:#e0f7fa;transform:scale(1.01);transition:0.2s;}
     .pendiente{color:#888;font-style:italic;}
@@ -39,18 +39,21 @@
         const meses = [];
         const mensuales = [];
         const acumulados = [];
-        let producto = 1;
+        let producto = 1; // Empieza en 1 para compuesto
         let html = '<tr><th>Mes</th><th>Rendimiento Mensual</th><th>YTD Compuesto</th></tr>';
 
         for (let i = 1; i < lineas.length; i++) {
           let partes = lineas[i].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
           let mes = partes[0];
           let valStr = partes[1] || '';
-          let mensual = valStr === '' ? null : parseFloat(valStr.replace('%', '').replace(',', '.'));
+
+          // REPARACIÓN CLAVE: Reemplaza coma por punto ANTES de parsear
+          let valClean = valStr.replace('%', '').replace(',', '.').trim();
+          let mensual = valClean === '' || isNaN(valClean) ? null : parseFloat(valClean);
 
           meses.push(mes);
 
-          if (mensual !== null) {
+          if (mensual !== null && !isNaN(mensual)) {
             producto *= (1 + mensual / 100);
             let ytd = (producto - 1) * 100;
             acumulados.push(ytd);
@@ -77,7 +80,7 @@
 
         document.getElementById('tabla').innerHTML = html;
 
-        // GRÁFICO YTD
+        // GRÁFICO YTD COMPUESTO
         new Chart(document.getElementById('grafico'), {
           type: 'line',
           data: {
@@ -86,13 +89,13 @@
               label: 'YTD Compuesto (%)',
               data: acumulados,
               borderColor: '#00e676',
-              backgroundColor: 'rgba(0, 230, 118, 0.25)',
+              backgroundColor: 'rgba(0, 230, 118, 0.3)',
               fill: true,
               tension: 0.4,
-              borderWidth: 7,
+              borderWidth: 8,
               pointBackgroundColor: '#00e676',
-              pointRadius: 11,
-              pointHoverRadius: 16
+              pointRadius: 12,
+              pointHoverRadius: 18
             }]
           },
           options: {
@@ -104,6 +107,9 @@
             scales: {y: {ticks: {callback: v => v + '%'}}}
           }
         });
+      })
+      .catch(err => {
+        document.body.innerHTML += '<p style="color:red;text-align:center;">Error cargando CSV. Verifica el nombre exacto: datos-2025.csv</p>';
       });
   </script>
 </body>
