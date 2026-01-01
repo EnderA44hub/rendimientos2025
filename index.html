@@ -1,116 +1,159 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>Rendimientos 2025 - @EnderA44</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body{font-family:'Segoe UI',sans-serif;margin:0;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;}
-    .card{max-width:1100px;width:95%;background:rgba(255,255,255,0.98);border-radius:25px;padding:40px;box-shadow:0 25px 60px rgba(0,0,0,0.4);color:#222;}
-    h1{text-align:center;color:#0f2027;font-size:3em;margin:0 0 8px;font-weight:900;}
-    .autor{text-align:center;color:#203a43;font-size:1.5em;font-weight:bold;margin-bottom:20px;}
-    .ytd{font-size:5.5em;font-weight:900;text-align:center;margin:30px 0;}
-    .positivo{color:#00e676;text-shadow:0 0 35px #00e676;}
-    .negativo{color:#ff1744;text-shadow:0 0 35px #ff1744;}
-    table{width:100%;max-width:900px;margin:35px auto;border-collapse:collapse;background:white;border-radius:18px;overflow:hidden;box-shadow:0 12px 35px rgba(0,0,0,0.2);}
-    th{background:#0f2027;color:white;padding:22px;font-size:1.4em;}
-    td{padding:20px;font-size:1.4em;text-align:center;font-weight:600;}
-    tr:nth-child(even){background:#f8f9fa;}
-    tr:hover{background:#e0f7fa;transform:scale(1.01);transition:0.2s;}
-    .pendiente{color:#888;font-style:italic;}
-    canvas{max-width:100%;border-radius:22px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.3);margin:30px 0;}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Rendimientos Mensuales 2025</h1>
-    <div class="autor">@EnderA44</div>
-    <div id="ytdActual" class="ytd">Cargando...</div>
-    <table id="tabla"></table>
-    <canvas id="grafico"></canvas>
-  </div>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 10px; /* Espacio extra en móviles */
+    box-sizing: border-box;
+  }
 
-  <script>
-    fetch('datos-2025.csv')
-      .then(r => r.text())
-      .then(text => {
-        const lineas = text.trim().split('\n');
-        const meses = [];
-        const mensuales = [];
-        const acumulados = [];
-        let producto = 1; // Empieza en 1 para compuesto
-        let html = '<tr><th>Mes</th><th>Rendimiento Mensual</th><th>YTD Compuesto</th></tr>';
+  .card {
+    max-width: 1100px;
+    width: 95%;
+    background: rgba(255,255,255,0.98);
+    border-radius: 25px;
+    padding: 40px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    color: #222;
+    box-sizing: border-box;
+  }
 
-        for (let i = 1; i < lineas.length; i++) {
-          let partes = lineas[i].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-          let mes = partes[0];
-          let valStr = partes[1] || '';
+  h1 {
+    text-align: center;
+    color: #0f2027;
+    font-size: 3em;
+    margin: 0 0 8px;
+    font-weight: 900;
+  }
 
-          // REPARACIÓN CLAVE: Reemplaza coma por punto ANTES de parsear
-          let valClean = valStr.replace('%', '').replace(',', '.').trim();
-          let mensual = valClean === '' || isNaN(valClean) ? null : parseFloat(valClean);
+  .autor {
+    text-align: center;
+    color: #203a43;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
 
-          meses.push(mes);
+  .ytd {
+    font-size: 5.5em;
+    font-weight: 900;
+    text-align: center;
+    margin: 30px 0;
+    line-height: 1.2;
+  }
 
-          if (mensual !== null && !isNaN(mensual)) {
-            producto *= (1 + mensual / 100);
-            let ytd = (producto - 1) * 100;
-            acumulados.push(ytd);
-            mensuales.push(mensual);
+  .positivo { color: #00e676; text-shadow: 0 0 35px #00e676; }
+  .negativo { color: #ff1744; text-shadow: 0 0 35px #ff1744; }
 
-            html += `<tr>
-              <td>${mes}</td>
-              <td class="${mensual>=0?'positivo':'negativo'}">${mensual.toFixed(2)}%</td>
-              <td class="positivo">${ytd.toFixed(2)}%</td>
-            </tr>`;
-          } else {
-            mensuales.push(null);
-            acumulados.push(null);
-            html += `<tr><td>${mes}</td><td class="pendiente">—</td><td class="pendiente">—</td></tr>`;
-          }
-        }
+  table {
+    width: 100%;
+    max-width: 900px;
+    margin: 35px auto;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+  }
 
-        // YTD FINAL GIGANTE
-        let ytdFinal = acumulados.filter(v => v !== null).pop() || 0;
-        document.getElementById('ytdActual').innerHTML = `
-          <div style="color:#0f2027;">Rendimiento YTD 2025</div>
-          <div class="${ytdFinal>=0?'positivo':'negativo'}">${ytdFinal.toFixed(2)}%</div>
-        `;
+  th {
+    background: #0f2027;
+    color: white;
+    padding: 22px;
+    font-size: 1.4em;
+  }
 
-        document.getElementById('tabla').innerHTML = html;
+  td {
+    padding: 20px;
+    font-size: 1.4em;
+    text-align: center;
+    font-weight: 600;
+  }
 
-        // GRÁFICO YTD COMPUESTO
-        new Chart(document.getElementById('grafico'), {
-          type: 'line',
-          data: {
-            labels: meses,
-            datasets: [{
-              label: 'YTD Compuesto (%)',
-              data: acumulados,
-              borderColor: '#00e676',
-              backgroundColor: 'rgba(0, 230, 118, 0.3)',
-              fill: true,
-              tension: 0.4,
-              borderWidth: 8,
-              pointBackgroundColor: '#00e676',
-              pointRadius: 12,
-              pointHoverRadius: 18
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              title: {display: true, text: 'EVOLUCIÓN YTD 2025 - @EnderA44', font: {size: 28, weight: 'bold'}, color: '#0f2027'},
-              tooltip: {callbacks: {label: ctx => ctx.parsed.y !== null ? ctx.parsed.y.toFixed(2) + '%' : 'Sin datos'}}
-            },
-            scales: {y: {ticks: {callback: v => v + '%'}}}
-          }
-        });
-      })
-      .catch(err => {
-        document.body.innerHTML += '<p style="color:red;text-align:center;">Error cargando CSV. Verifica el nombre exacto: datos-2025.csv</p>';
-      });
-  </script>
-</body>
-</html>
+  tr:nth-child(even) { background: #f8f9fa; }
+  tr:hover { background: #e0f7fa; transform: scale(1.01); transition: 0.2s; }
+  .pendiente { color: #888; font-style: italic; }
+
+  canvas {
+    max-width: 100%;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    margin: 30px 0;
+  }
+
+  /* ==== MEDIA QUERIES PARA MÓVILES Y TABLETS ==== */
+  @media (max-width: 768px) {
+    .card {
+      padding: 25px 20px;
+      border-radius: 20px;
+    }
+
+    h1 {
+      font-size: 2.2em;
+    }
+
+    .autor {
+      font-size: 1.3em;
+    }
+
+    .ytd {
+      font-size: 3.8em; /* Reduce el tamaño del número gigante */
+    }
+
+    .ytd > div:first-child {
+      font-size: 0.5em; /* "Rendimiento YTD 2025" más pequeño */
+    }
+
+    th, td {
+      padding: 14px 8px;
+      font-size: 1.1em;
+    }
+
+    th {
+      font-size: 1.2em;
+    }
+
+    table {
+      font-size: 0.95em;
+    }
+  }
+
+  @media (max-width: 480px) {
+    body {
+      padding: 10px;
+    }
+
+    .card {
+      padding: 20px 15px;
+      width: 98%;
+    }
+
+    h1 {
+      font-size: 1.9em;
+    }
+
+    .ytd {
+      font-size: 3.2em;
+      margin: 20px 0;
+    }
+
+    .ytd > div:first-child {
+      font-size: 0.45em;
+    }
+
+    th, td {
+      padding: 10px 6px;
+      font-size: 1em;
+    }
+
+    canvas {
+      margin: 20px 0;
+    }
+  }
+</style>
